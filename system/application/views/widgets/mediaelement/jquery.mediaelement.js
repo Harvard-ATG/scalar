@@ -5539,7 +5539,7 @@ function YouTubeGetID(url){
 			this.parentView.layoutMediaObject();
 			this.parentView.removeLoadingMessage();
       // make sure mirador doesn't overflow its bounds
-      $('.mirador-viewer').css('max-height', $('.mediaContainer').css('max-height'));
+      $('.mirador-viewer', this.mediaObject).css('max-height', $(this.parentView.mediaContainer).css('max-height'));
 
 			return;
 		}
