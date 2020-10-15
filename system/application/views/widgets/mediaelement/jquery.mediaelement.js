@@ -5526,11 +5526,12 @@ function YouTubeGetID(url){
 		jQuery.MiradorObjectView.prototype.createObject = function() {
 
 			var approot = $('link#approot').attr('href');
-
-			this.mediaObject = $( '<div class="mediaObject" id="mirador"></div>' ).appendTo( this.parentView.mediaContainer );
+			let m3Instances = $('.m3');
+			let miradorId = m3Instances.length;
+			this.mediaObject = $( `<div class="mediaObject m3" id="mirador-${miradorId}"></div>`).appendTo( this.parentView.mediaContainer );
       
       var miradorInstance = Mirador.viewer({
-        id: 'mirador',
+        id: `${mirador-id}`,
         windows: [
           { manifestId: this.model.node.current.sourceFile }
         ]
@@ -5558,8 +5559,8 @@ function YouTubeGetID(url){
 		 * @param {Number} height		The new height of the media.
 		 */
 		jQuery.MiradorObjectView.prototype.resize = function(width, height) {
-			$('#mirador').width(Math.round(width));
-			$('#mirador').height(Math.round(height));
+			$('.m3').width(Math.round(width));
+			$('.m3').height(Math.round(height));
 		}
 
 	}
