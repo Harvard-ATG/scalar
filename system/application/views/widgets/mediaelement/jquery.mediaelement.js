@@ -5531,7 +5531,7 @@ function YouTubeGetID(url){
 			this.mediaObject = $( `<div class="mediaObject m3" id="mirador-${miradorId}"></div>`).appendTo( this.parentView.mediaContainer );
       
       var miradorInstance = Mirador.viewer({
-        id: `${mirador-id}`,
+        id: `mirador-${miradorId}`,
         windows: [
           { manifestId: this.model.node.current.sourceFile }
         ]
