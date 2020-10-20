@@ -5521,26 +5521,23 @@ function YouTubeGetID(url){
 		this.isLiquid = true;					// media will expand to fill available space
 
 		/**
-		 * Creates the video media object.
+		 * Creates the mirador media object.
 		 */
 		jQuery.MiradorObjectView.prototype.createObject = function() {
 
-			var approot = $('link#approot').attr('href');
-			let m3Instances = $('.m3');
-			let miradorId = m3Instances.length;
-			this.mediaObject = $( `<div class="mediaObject m3" id="mirador-${miradorId}"></div>`).appendTo( this.parentView.mediaContainer );
+			this.mediaObject = $( `<div class="mediaObject" id="mirador-${me.model.id}"></div>`).appendTo( this.parentView.mediaContainer );
       
-      var miradorInstance = Mirador.viewer({
-        id: `mirador-${miradorId}`,
-        windows: [
-          { manifestId: this.model.node.current.sourceFile }
-        ]
-      });
+			var miradorInstance = Mirador.viewer({
+				id: `mirador-${me.model.id}`,
+				windows: [
+					{ manifestId: this.model.node.current.sourceFile }
+				]
+			});
 
 			this.parentView.layoutMediaObject();
 			this.parentView.removeLoadingMessage();
-      // make sure mirador doesn't overflow its bounds
-      $('.mirador-viewer', this.mediaObject).css('max-height', $(this.parentView.mediaContainer).css('max-height'));
+			// make sure mirador doesn't overflow its bounds
+			$('.mirador-viewer', this.mediaObject).css('max-height', $(this.parentView.mediaContainer).css('max-height'));
 
 			return;
 		}
@@ -5559,8 +5556,8 @@ function YouTubeGetID(url){
 		 * @param {Number} height		The new height of the media.
 		 */
 		jQuery.MiradorObjectView.prototype.resize = function(width, height) {
-			$('.m3').width(Math.round(width));
-			$('.m3').height(Math.round(height));
+			$(`#mirador-${me.model.id}`).width(Math.round(width));
+			$(`#mirador-${me.model.id}`).height(Math.round(height));
 		}
 
 	}
