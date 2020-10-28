@@ -876,7 +876,7 @@ ScalarAPI.prototype.parseMediaSource = function(uri) {
 
 		} else if (uri.substr(uri.length - 3) == 'PDF') {
 			source = this.mediaSources['PDF'];
-    } else if (uri.indexOf('?iiif-manifest=1') != -1) {
+		} else if (uri.indexOf('?iiif-manifest=1') != -1) {
 			source = this.mediaSources['IIIF'];
 		// no special cases; handle normally
 		} else {
