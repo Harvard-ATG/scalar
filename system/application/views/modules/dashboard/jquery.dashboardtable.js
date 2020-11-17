@@ -74,6 +74,29 @@
 
 		},
 
+		filterAuthor : function(options) {
+
+			options = $.extend(defaults, options);
+			options = $.fn.scalardashboardtable('set_hide_columns', options);
+			window['scalarapi'] = new ScalarAPI();
+			options.scalarapi = window['scalarapi'];
+			options.scalarapi.model.urlPrefix = options.book_uri;
+			options.callee = 'search';
+
+			return this.each(function() {
+				options.wrapper = this;
+				var success = function() {
+					options.scalarapi.model.nodes = options.scalarapi.model.nodes.filter((node) => {
+						return node.author === `${options.book_uri}users/${options.sq}`;
+					});
+					$.fn.scalardashboardtable('init', options);
+				};
+				var error = function() { };
+				options.scalarapi.nodeSearch("", success, error, 0, 0, 0, null, null, 1, null, options.s_all, ((options.s_all)?1:false));
+			});
+
+		},
+
 		paginate : function(options) {
 
 			options = $.extend(defaults, options);

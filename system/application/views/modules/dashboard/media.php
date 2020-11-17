@@ -28,6 +28,13 @@
 				$('.table_wrapper').find('input[type="checkbox"]').prop('checked', check_all);
 			});
 
+			$('#my_media').on('click', function() {
+				let myUser = "<?=htmlspecialchars($login->user_id)?>";
+				$('.table_wrapper:first').scalardashboardtable('filterAuthor', {sq:myUser});
+   	   			return false;
+			});
+
+
 			$('#selectImportPages').on('change', function() {
 				var url = $('#selectImportPages option:selected').val();
 				document.location.href = url;
@@ -41,7 +48,7 @@
    			$('#formSearch').on('submit', function() {
    				start = 0;
    				$('.table_wrapper').html('<div id="loading">Loading</div>');
-   	   			var sq = $(this).find('input[name="sq"]').val().toLowerCase();
+				var sq = $(this).find('input[name="sq"]').val().toLowerCase();
    	   			var s_all = ($(this).find('input[name="s_all"][value="1"]').is(':checked')) ? 1 : null;
    	   			if (!sq.length || 'Search for a media file'.toLowerCase()==sq) {
 					alert('Please enter a search query');
@@ -334,5 +341,7 @@
 		Jump to: <select name="jump_to"><option value=""></option></select> of  <b><?=count($current_book_files)?></b> media
 		&nbsp; &nbsp;
 		<span style="white-space:nowrap;">Show: <select name="num_results"></select> at a time</span>
+		&nbsp; &nbsp;
+		<input id="my_media" type="button" value="My Media" class="generic_button" />
 		</form>
 <? endif ?>
