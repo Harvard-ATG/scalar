@@ -30,7 +30,10 @@
 
 			$('#my_media').on('click', function() {
 				let myUser = "<?=htmlspecialchars($login->user_id)?>";
-				$('.table_wrapper:first').scalardashboardtable('filterAuthor', {sq:myUser});
+				$('.table_wrapper:first').scalardashboardtable('filterAuthor', {query_type:'media',sq:myUser,s_all:s_all,start:start,results:results,book_uri:book_uri,resize_wrapper_func:resizeList,tablesorter_func:tableSorter,pagination_func:pagination,paywall:paywall});
+				$('select[name="num_results"] option').filter(function() {
+					return ($(this).text() === 'All');
+				}).prop('selected', true);
    	   			return false;
 			});
 
@@ -82,7 +85,8 @@
    			}
    			handle_jump_to();
 
-   			var $num_results = $('select[name="num_results"]');
+			var $num_results = $('select[name="num_results"]');
+			$num_results.append('<option value="All">All</option>');
 			for (j = results; j <= max_results; j+=results) {
 				$num_results.append('<option value="'+j+'"'+((j==results)?' selected':'')+'>'+j+'</option>');
 			}
