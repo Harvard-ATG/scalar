@@ -30,6 +30,13 @@
 				$('.table_wrapper').find('input[type="checkbox"]').prop('checked', check_all);
 			});
 
+			$('#my_categories').on('click', function() {
+				let myUser = "<?=htmlspecialchars($login->user_id)?>";
+				rel_type = $(this).find('[name="relType"] option:selected').val();
+				$('.table_wrapper:first').scalardashboardtable('filterAuthor', {query_type:rel_type,sq:myUser,s_all:s_all,start:start,results:results,book_uri:book_uri,resize_wrapper_func:resizeList,tablesorter_func:tableSorter,pagination_func:pagination,paywall:paywall});
+   	   			return false;
+			});
+
 			$('.table_wrapper:first').scalardashboardtable('paginate', {query_type:rel_type,start:null,results:null,book_uri:book_uri,resize_wrapper_func:resizeList,tablesorter_func:tableSorter,pagination_func:pagination,paywall:false,no_content_msg:'There is no content of this type<br />You can select a different category using the pulldown above'});
 
    			$(window).on('resize', function() { resizeList(); });
@@ -264,6 +271,8 @@
 		<input type="submit" value="Delete selected pages" class="generic_button" />
 		&nbsp; &nbsp;
 		<input id="check_all" type="checkbox" /><label for="check_all"> Check all</label>
+		&nbsp; &nbsp;
+		<input id="my_pages" type="button" value="My Pages" class="generic_button" />
 		</form>
 
 
