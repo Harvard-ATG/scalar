@@ -271,8 +271,10 @@ Class Api extends CI_Controller {
 		if (isset($this->data['scalar:url']) && strpos($this->data['scalar:url'], '?iiif-manifest=1') > -1){
 			$iiif_metadata_array = $this->_get_IIIF_metadata($this->data['scalar:url']);
 			if($iiif_metadata_array !== false){
-				foreach ($iiif_metadata_array as $key => $value){ 
-					$this->data[$key] = $value;
+				foreach ($iiif_metadata_array as $key => $value){
+					if (!isset($this->data[$key])){
+						$this->data[$key] = $value;
+					}
 				}	
 			}
 		}

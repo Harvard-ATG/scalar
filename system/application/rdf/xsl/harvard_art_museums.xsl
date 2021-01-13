@@ -25,12 +25,31 @@
 
 	<xsl:template match="*"></xsl:template>
 	
-	<xsl:template match="//node/node[images]">			
+	<xsl:template match="//node/node[images]">
+	    		
 		<rdf:Description rdf:about="{url}">
 		    <art:thumbnail rdf:resource="{concat(images/node[1]/iiifbaseuri, '/full/!225,225/0/default.jpg')}" />
 			<art:filename><xsl:value-of select="concat(seeAlso/node[1]/id, '?iiif-manifest=1')" /></art:filename>
 			<dcterms:title><xsl:value-of select="title" /></dcterms:title>
+			<dcterms:description><xsl:value-of select="description" /></dcterms:description>
+			<dcterms:source>Harvard Art Museums</dcterms:source>
+			<dcterms:accrualMethod><xsl:value-of select="accessionmethod" /></dcterms:accrualMethod>
+			<dcterms:available><xsl:value-of select="accessionyear" /></dcterms:available>
+			<dcterms:medium><xsl:value-of select="medium" /></dcterms:medium>
+			<dcterms:format><xsl:value-of select="dimensions" /></dcterms:format>
+			<dcterms:provenance><xsl:value-of select="provenance" /></dcterms:provenance>
+			<dcterms:rights><xsl:value-of select="copyright" /></dcterms:rights>
+			<dcterms:rightsHolder><xsl:value-of select="creditline" /></dcterms:rightsHolder>
+			<dcterms:type><xsl:value-of select="classification" /></dcterms:type>
+			<xsl:if test="count(places/node/displayname) > 0">
+                <dcterms:spatial><xsl:value-of select="concat(places/node/displayname, ' (', places/node/type, ')')"/></dcterms:spatial>
+            </xsl:if>
+			<xsl:if test="count(culture) > 0">
+                <dcterms:coverage><xsl:value-of select="concat('Culture:', culture)" /></dcterms:coverage>
+            </xsl:if>
 		</rdf:Description>		
 	</xsl:template>		 
-                
+    
+
+	
 </xsl:stylesheet>
