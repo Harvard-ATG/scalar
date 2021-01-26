@@ -32,7 +32,7 @@
 			<art:filename><xsl:value-of select="concat(seeAlso/node[1]/id, '?iiif-manifest=1')" /></art:filename>
 			<dcterms:title><xsl:value-of select="title" /></dcterms:title>
 			<dcterms:description><xsl:value-of select="description" /></dcterms:description>
-			<dcterms:source>Harvard Art Museums</dcterms:source>
+			<dcterms:source><xsl:value-of select="$archiveName"/></dcterms:source>
 			<dcterms:accrualMethod><xsl:value-of select="accessionmethod" /></dcterms:accrualMethod>
 			<dcterms:available><xsl:value-of select="accessionyear" /></dcterms:available>
 			<dcterms:medium><xsl:value-of select="medium" /></dcterms:medium>
