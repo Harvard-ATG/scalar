@@ -42,11 +42,11 @@
 			<dcterms:rightsHolder><xsl:value-of select="creditline" /></dcterms:rightsHolder>
 			<dcterms:type><xsl:value-of select="classification" /></dcterms:type>
 			<xsl:if test="count(places/node/displayname) > 0">
-                <dcterms:spatial><xsl:value-of select="concat(places/node/displayname, ' (', places/node/type, ')')"/></dcterms:spatial>
-            </xsl:if>
+				<dcterms:spatial><xsl:value-of select="concat(places/node/displayname, ' (', places/node/type, ')')"/></dcterms:spatial>
+			</xsl:if>
 			<xsl:if test="count(culture) > 0">
-                <dcterms:coverage><xsl:value-of select="concat('Culture:', culture)" /></dcterms:coverage>
-            </xsl:if>
+				<dcterms:coverage><xsl:value-of select="concat('Culture:', culture)" /></dcterms:coverage>
+			</xsl:if>
 		</rdf:Description>		
 	</xsl:template>		 
     
