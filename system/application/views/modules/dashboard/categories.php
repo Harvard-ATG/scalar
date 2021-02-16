@@ -20,6 +20,7 @@
 
 		var book_uri = '<?=addslashes(confirm_slash(base_url()).confirm_slash($book->slug))?>';
 		var book_id = <?=$book->book_id?>;
+		var user_id = <?=$login->user_id?>;
 
 		$(document).ready(function() {
 
@@ -31,9 +32,8 @@
 			});
 
 			$('#my_categories').on('click', function() {
-				let myUser = "<?=htmlspecialchars($login->user_id)?>";
 				rel_type = $(this).find('[name="relType"] option:selected').val();
-				$('.table_wrapper:first').scalardashboardtable('filterAuthor', {query_type:rel_type,sq:myUser,s_all:s_all,start:start,results:results,book_uri:book_uri,resize_wrapper_func:resizeList,tablesorter_func:tableSorter,pagination_func:pagination,paywall:paywall});
+				$('.table_wrapper:first').scalardashboardtable('filterAuthor', {query_type:rel_type,sq:user_id,s_all:s_all,start:start,results:results,book_uri:book_uri,resize_wrapper_func:resizeList,tablesorter_func:tableSorter,pagination_func:pagination,paywall:paywall});
    	   			return false;
 			});
 
