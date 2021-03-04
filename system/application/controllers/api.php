@@ -26,6 +26,20 @@
 * @version				1.3
 */
 
+// Allow from any origin
+if (isset($_SERVER['HTTP_ORIGIN'])) {
+	header("Access-Control-Allow-Origin: {$_SERVER['HTTP_ORIGIN']}");
+	header('Access-Control-Allow-Credentials: true');
+	header('Access-Control-Max-Age: 86400');
+}
+
+// Access-Control headers are received during OPTIONS requests
+if ($_SERVER['REQUEST_METHOD'] == 'OPTIONS') {
+	if (isset($_SERVER['HTTP_ACCESS_CONTROL_REQUEST_METHOD'])) header("Access-Control-Allow-Methods: GET, POST, OPTIONS");
+	if (isset($_SERVER['HTTP_ACCESS_CONTROL_REQUEST_HEADERS'])) header("Access-Control-Allow-Headers: {$_SERVER['HTTP_ACCESS_CONTROL_REQUEST_HEADERS']}");
+	exit(0);
+}
+
 Class Api extends CI_Controller {
 
 	private $actions = array('ADD', 'DELETE', 'UNDELETE', 'UPDATE', 'RELATE');	//valid actions, redundant with URI but kept for clarity's sake
@@ -43,8 +57,8 @@ Class Api extends CI_Controller {
 	private $content_types = array('book', 'media', 'composite', 'version');
 
 	//Valid relationship types and metadata
-	private $rel_types = array('page', 'annotated', 'contained', 'referenced', 'replied', 'tagged');
-	private $rel_annotated = array('start_seconds', 'end_seconds', 'start_line_num', 'end_line_num', 'points');
+	private $rel_types = array('page', 'annotated', 'contained', 'referenced', 'replied', 'tagged','grouped');
+	private $rel_annotated = array('start_seconds', 'end_seconds', 'start_line_num', 'end_line_num', 'points', 'position_3d');
 	private $rel_contained = array('sort_number');
 	private $rel_referenced = array('reference_text');
 	private $rel_replied = array('paragraph_num', 'datetime');
@@ -75,7 +89,7 @@ Class Api extends CI_Controller {
 		$this->load->library('statusCodes');
 		$this->load->library('RDF_Store','rdf_store');
  		$this->data = array();
- 		
+
  		//Determine if the incoming request has a payload (JSON blob) and convert to post fields if available
 		$this->_payload_to_auth_data();
 
@@ -86,29 +100,31 @@ Class Api extends CI_Controller {
  		$this->load->model('user_model', 'users');
  		$this->load->model('api_login_model', 'api_users');
 
+ 		//Get the current book, used to authenticate the user
+ 		$this->load->model('book_model', 'books');
+ 		$this->data['book'] = $this->books->get_by_slug(strtolower(no_edition($this->uri->segment(1))));
+ 		if (empty($this->data['book'])) $this->_output_error(StatusCodes::HTTP_NOT_FOUND, 'Could not find book');
+
  		//Session login first
- 		if($this->data['native']==='true'){
- 			$this->load->model('book_model', 'books');
- 			$this->data['book'] = $this->books->get_by_slug(strtolower(no_edition($this->uri->segment(1))));
- 			if (empty($this->data['book'])) $this->_output_error(StatusCodes::HTTP_NOT_FOUND, 'Could not find book');
+ 		if ($this->data['native']==='true'){
  			$this->user = $this->api_users->do_session_login($this->data['book']->book_id);
- 			if(!$this->user && $this->api_users->is_super()) $this->_output_error(StatusCodes::HTTP_UNAUTHORIZED, 'You do not have permission to modify this book');
- 			if(!$this->user) $this->_output_error(StatusCodes::HTTP_UNAUTHORIZED, 'You are not logged in');
- 			$this->_fill_user_session_data();
+ 			if (!$this->user && $this->api_users->is_super()) $this->_output_error(StatusCodes::HTTP_UNAUTHORIZED, 'You do not have permission to modify this book');
+ 			if (!$this->user) $this->_output_error(StatusCodes::HTTP_UNAUTHORIZED, 'You are not logged in');
  		// API key login
- 		} else if(!$this->user = $this->api_users->do_login($this->data['email'], $this->data['api_key'], $this->data['host'])){
+ 		} else if (!$this->user = $this->api_users->do_login($this->data['email'], $this->data['api_key'], $this->data['host'], $this->data['book']->book_id)){
  			$this->_output_error(StatusCodes::HTTP_UNAUTHORIZED, 'Could not log in via API key');
  		}
+ 		$this->_fill_user_session_data();
 
  		//Determine if the incoming request has a payload (JSON blob) and convert to post fields if available
  		$this->_payload_to_data($this->data['book']);
- 		
+
  		//Propagate allowable prefixes
  		$ontologies = $this->config->item('ontologies');
  		foreach (array_keys($ontologies) as $key) {
  			array_push($this->allowable_metadata_prefixes, $key);
  		}
- 		
+
  		//TKLabels if applicable
  		$this->tklabels = $this->_tklabels($this->user->book_id);
  		if (!isset($this->tklabels['labels'])) $this->tklabels = null;
@@ -220,7 +236,7 @@ Class Api extends CI_Controller {
 		//save the version
 		$save_version = $this->_array_remap_version($this->data['content_id']);
 		$this->data['version_id'] = $this->versions->create($this->data['content_id'], $save_version);
-		
+
 		$row = $this->versions->get($this->data['version_id']);
 		$this->data['content'] = array($this->versions->get_uri($this->data['version_id'])=>$this->versions->rdf($row));
 
@@ -274,6 +290,21 @@ Class Api extends CI_Controller {
 				foreach ($iiif_metadata_array as $key => $value){ 
 					$this->data[$key] = $value;
 				}	
+			}
+		}
+	}
+
+        /**
+	*  If the data being uploaded is a IIIF resource, get the thumbnail
+	* and other metadata from the iiif json itself.
+	**/
+	private function _load_iiif_data(){
+		if (isset($this->data['scalar:url']) && strpos($this->data['scalar:url'], '?iiif-manifest=1') > -1){
+			$iiif_metadata_array = $this->_get_IIIF_metadata($this->data['scalar:url']);
+			if($iiif_metadata_array !== false){
+				foreach ($iiif_metadata_array as $key => $value){
+					$this->data[$key] = $value;
+				}
 			}
 		}
 	}
@@ -361,7 +392,7 @@ Class Api extends CI_Controller {
 		}
 
 		if(!in_array($this->data['scalar:child_rel'], $this->rel_types)) $this->_output_error(StatusCodes::HTTP_BAD_REQUEST, 'Invalid scalar:child_rel value.');
-		
+
 		$all_post_data = $_POST;   // $this->input->post() is supposed to return the full array, but doesn't
 		foreach ($all_post_data as $key => $value) {
 			foreach ($this->allowable_metadata_prefixes as $prefix) {
@@ -478,7 +509,7 @@ Class Api extends CI_Controller {
 		if($this->versions->get_book($this->data['version_id']) != $this->user->book_id){
 			$this->_output_error(StatusCodes::HTTP_UNAUTHORIZED, 'You do not have permission to modify this node');
 		}
-		
+
 		$all_post_data = $_POST;   // $this->input->post() is supposed to return the full array, but doesn't
 		foreach ($all_post_data as $key => $value) {
 			foreach ($this->allowable_metadata_prefixes as $prefix) {
@@ -607,6 +638,52 @@ Class Api extends CI_Controller {
 		return false;
 	}
 
+        /**
+	* _get_IIIF_metadata takes IIIF manifest url, and returns associative array of metadata.
+	* Otherwise, it will return False
+	* @return array
+	*/
+        private function _get_IIIF_metadata($url=''){
+		$ontologies = $this->config->item('ontologies');
+        $dc_check_fields = array_diff($ontologies['dcterms'], array('title', 'description', 'license'));
+		$formated_check_fields = array_combine($dc_check_fields, array_map('strtolower', $dc_check_fields));
+		if ($url !== ''){
+			$ch = curl_init();
+			curl_setopt($ch, CURLOPT_URL, $url);
+			curl_setopt($ch, CURLOPT_CONNECTTIMEOUT, 3);
+			curl_setopt($ch, CURLOPT_TIMEOUT, 15);
+			curl_setopt($ch, CURLOPT_RETURNTRANSFER, TRUE);
+			$response = curl_exec($ch);
+			curl_close($ch);
+			$response_json = json_decode($response, true);
+			if (is_array($response_json)) {
+				$return_array = [];
+				if (isset($response_json['thumbnail'])){
+					if(isset($response_json['thumbnail']['@id'])){
+				        $return_array['scalar:thumbnail'] = $response_json['thumbnail']['@id'];
+					} else {
+					    $return_array['scalar:thumbnail'] = $response_json['thumbnail'];
+					}
+				}
+				if (isset($response_json['license'])) {
+					$return_array['dcterms:license'] = $response_json['license'];
+				}
+				if (isset($response_json['metadata'])) {
+					foreach ($response_json['metadata'] as $obj) {
+						$formated_label = strtolower(str_replace(' ', '', $obj['label']));
+						$key = array_search($formated_label, $formated_check_fields);
+						if($key) {
+							$label = 'dcterms:' . $key;
+							$return_array[$label] = $obj['value'];
+						}
+					}
+				}
+				return $return_array;
+			}
+		}
+		return false;
+	}
+
 	/**
 	* _array_remap_version() translates the raw form data into the array format that the version model is expecting
 	* @return array
@@ -687,7 +764,7 @@ Class Api extends CI_Controller {
 		switch($this->data['scalar:child_rel']) {
 			case 'annotated':
 				$this->load->model('annotation_model', 'annotations');
-				$this->annotations->save_children($parent_id, array($this->data['scalar:child_urn']), array($save['start_seconds']), array($save['end_seconds']), array($save['start_line_num']), array($save['end_line_num']), array($save['points']));
+				$this->annotations->save_children($parent_id, array($this->data['scalar:child_urn']), array($save['start_seconds']), array($save['end_seconds']), array($save['start_line_num']), array($save['end_line_num']), array($save['points']), array($save['position_3d']));
 				break;
 			case 'contained':
 				$this->load->model('path_model', 'paths');
@@ -738,12 +815,12 @@ Class Api extends CI_Controller {
 		return $this->rdf_store->serialize($output, $prefix, $this->data['format']);
 
 	}
-	
+
 	/**
 	 * Get TK Lables to the resources table if the feature is enabled
 	 */
 	private function _tklabels($book_id) {
-		
+
 		$enable = $this->config->item('enable_tklabels');
 		if (!$enable) return null;
 		$namespaces = $this->config->item('namespaces');
@@ -754,11 +831,11 @@ Class Api extends CI_Controller {
 		if (!empty($tklabels)) $tklabels = unserialize($tklabels);
 
 		return $tklabels;
-		
+
 	}
-	
+
 	/**
-	 * 
+	 *
 	 */
 	private function _payload_to_auth_data() {
 
@@ -772,20 +849,27 @@ Class Api extends CI_Controller {
 		if (isset($json[0]['@context']) && 'http://www.w3.org/ns/anno.jsonld' == $json[0]['@context']) {
 			$_POST['native'] = 'true';
 			$_POST['action'] = 'ADD';
-			
+			if (isset($json[0]['request']) && isset($json[0]['request']['items'])) {
+				$_POST["native"] = (isset($json[0]['request']['items']['native'])) ? $json[0]['request']['items']['native'] : false;
+				$_POST["id"] = (isset($json[0]['request']['items']['id'])) ? $json[0]['request']['items']['id'] : '';
+				$_POST["api_key"] = (isset($json[0]['request']['items']['api_key'])) ? $json[0]['request']['items']['api_key'] : '';
+				$_POST["action"] = (isset($json[0]['request']['items']['action'])) ? strtoupper($json[0]['request']['items']['action']) : '';
+				$_POST["format"] = (isset($json[0]['request']['items']['format'])) ? $json[0]['request']['items']['format'] : 'json';
+			}
+
 		// Lens JSON
 		} elseif (isset($json[0]['urn']) && 'urn:scalar:lens:' == substr($json[0]['urn'], 0, 16)) {
 			$_POST['native'] = 'true';
 			$_POST['action'] = 'RELATE';
 		}
-		
+
 	}
-	
+
 	/**
 	 *
 	 */
 	private function _payload_to_data($book=null) {
-		
+
 		$request_body = file_get_contents('php://input');
 		if (empty($request_body)) return false;
 		$json = json_decode($request_body, true);
@@ -802,7 +886,7 @@ Class Api extends CI_Controller {
 			$this->load->model('lens_model', 'lenses');
 			$_POST = array_merge($_POST, $this->lenses->decode($json[0], $book));
 		}
-		
+
 	}
 }
 

@@ -87,6 +87,8 @@ $(document).ready(function() {
 	    <li data-id="export"><a href="?book_id=<?=((isset($book) && !empty($book))?$book->book_id:'0')?>&zone=utils&pill=export#tabs-utils">Export</a></li>
 	    <li data-id="api-explorer"><a href="?book_id=<?=((isset($book) && !empty($book))?$book->book_id:'0')?>&zone=utils&pill=api-explorer#tabs-utils">API Explorer</a></li>
 <? if ($login_is_super): ?>
+		<li class="admin" data-id="google-authenticator"><a href="?book_id=<?=((isset($book) && !empty($book))?$book->book_id:'0')?>&zone=utils&pill=google-authenticator#tabs-utils">Google Authenticator</a></li>
+		<li class="admin" data-id="disallowed-emails"><a href="?book_id=<?=((isset($book) && !empty($book))?$book->book_id:'0')?>&zone=utils&pill=disallowed-emails#tabs-utils">Disallowed emails</a></li>
 		<li class="admin" data-id="manage-users"><a href="?book_id=<?=((isset($book) && !empty($book))?$book->book_id:'0')?>&zone=all-users&pill=manage-users#tabs-utils">Manage users</a></li>
 		<li class="admin" data-id="manage-books"><a href="?book_id=<?=((isset($book) && !empty($book))?$book->book_id:'0')?>&zone=all-books&pill=manage-books#tabs-utils">Manage books</a></li>
 		<li class="admin" data-id="generate-email-list"><a href="?book_id=<?=((isset($book) && !empty($book))?$book->book_id:'0')?>&zone=utils&pill=generate-email-list#tabs-utils">Generate email list</a></li>
@@ -236,12 +238,12 @@ $(document).ready(function() {
 
 			<? if (isset($_GET['error']) && $_GET['error']==1): ?>
 			<div class="alert alert-danger">You left out a required field<a style="float:right;" href="?book_id=<?=((isset($book->book_id))?$book->book_id:0)?>&pill=manage-users&zone=all-users#tabs-utils">clear</a></div>
-			<? endif; ?>
-			<? if (isset($_GET['error']) && $_GET['error']==2): ?>
+			<? elseif (isset($_GET['error']) && $_GET['error']==2): ?>
 			<div class="alert alert-danger">Password and Retype password did not match<a style="float:right;" href="?book_id=<?=((isset($book->book_id))?$book->book_id:0)?>&pill=manage-users&zone=all-users#tabs-utils">clear</a></div>
-			<? endif; ?>
-			<? if (isset($_GET['error']) && $_GET['error']==3): ?>
+			<? elseif (isset($_GET['error']) && $_GET['error']==3): ?>
 			<div class="alert alert-danger">A user with that email address already exists<a style="float:right;" href="?book_id=<?=((isset($book->book_id))?$book->book_id:0)?>&pill=manage-users&zone=all-users#tabs-utils">clear</a></div>
+			<? elseif (isset($_GET['error'])): ?>
+			<div class="alert alert-danger"><? echo $_GET['error']; ?><a style="float:right;" href="?book_id=<?=((isset($book->book_id))?$book->book_id:0)?>&pill=manage-users&zone=all-users#tabs-utils">clear</a></div>
 			<? endif; ?>
 			<? if (isset($_REQUEST['action']) && 'deleted'==$_REQUEST['action']): ?>
 			<div class="alert alert-success">User has been deleted<a style="float:right;" href="?book_id=<?=((isset($book->book_id))?$book->book_id:0)?>&pill=manage-users&zone=all-users#tabs-utils">clear</a></div>
@@ -347,6 +349,109 @@ $(document).ready(function() {
 			</div>
 			</form>
     	<?php endif; ?>
+    	</div>
+    	<div class="section" id="google-authenticator">
+    	<?php if ('google-authenticator'==$pill): ?>
+			<form action="<?=confirm_slash(base_url())?>system/dashboard?book_id=<?=((isset($book)&&!empty($book))?$book->book_id:0)?>&zone=utils&pill=google-authenticator#tabs-utils" method="post">
+			<input type="hidden" name="zone" value="utils" />
+			<input type="hidden" name="pill" value="google-authenticator" />
+			<input type="hidden" name="action" value="enable_google_authenticator" />
+			<h4>Google Authenticator</h4><br />
+			<div><div style="width:50%;float:left;"><?php 
+				$salt = $this->config->item('google_authenticator_salt');
+				if (empty($salt)) {
+					echo 'Two factor authentication is disabled. To enable, enter a "google_authenticator_salt" key in local_settings.php.'."\n";
+				} else {
+					echo 'To enable two-factor authentication for your super admin account (<b>'.$login->email.'</b>) first open Google Authenticator on your device and scan the QR code:<br />'."\n";
+					echo $qr_image;
+					echo '<br />';
+					echo 'Then, check the box below to enable two-factor authentication for your account:<br />';
+					echo '<label><input style="margin-top:8px;" type="checkbox" name="enable_google_authenticator" value="1" '.(($google_authenticator_is_enabled)?'checked':'').' /> &nbsp;Enable two-factor authentication for my account</labe><br />';
+					echo '<input type="submit" value="Save" class="btn btn-primary" style="margin-top:8px;" />';
+				}
+			?></div><div style="width:50%;float:right;border-left:solid 1px #aaaaaa;padding-left:20px;">
+				List of super admins (<b>bold</b> = authentication enabled):<br /><br /><?php 
+				foreach ($super_admins as $admin) {
+					$enabled = (isset($admin->google_authenticator_is_enabled) && $admin->google_authenticator_is_enabled) ? true : false; 
+					echo (($enabled)?'<b>':'').$admin->fullname.' ('.$admin->email.')'.(($enabled)?'</b>':'').'<br />';
+				}
+				?>
+			</div></div>
+			</form>
+		<?php endif; ?>
+    	</div>
+    	<div class="section" id="disallowed-emails">
+    	<?php if ('disallowed-emails'==$pill): ?>
+			<form action="<?=confirm_slash(base_url())?>system/dashboard?book_id=<?=((isset($book)&&!empty($book))?$book->book_id:0)?>&zone=utils&pill=disallowed-emails#tabs-utils" method="post" id="disallowed_emails_form">
+			<input type="hidden" name="zone" value="utils" />
+			<input type="hidden" name="action" value="get_disallowed_emails" />
+			<h4>Disallowed emails</h4>
+			<?php 
+			if (isset($_POST['action']) && $_POST['action'] == 'do_save_disallowed_emails') {
+				echo '<div class="alert alert-success" style="margin-left:0px; margin-right:0px;">List of disallowed emails has been saved</div>';
+			}
+			?>
+			Disallow email addresses from being used to register or login<br /><br />
+			<div class="div_list"><?php 
+			if (!isset($disallowed_emails)) {
+				
+			} elseif (empty($disallowed_emails)) {
+				
+			} else {
+				foreach($disallowed_emails as $email) {
+					echo '<div><label>';
+					echo '<input type="checkbox" name="email[]" value="'.$email.'" /> &nbsp; ';
+					echo $email;
+					echo '</label></div>'."\n";
+				}
+			}
+			?></div></form>
+			<?php 
+			if (isset($disallowed_emails)) {
+				echo '<form id="do_remove_disallowed_emails" action="'.confirm_slash(base_url()).'system/dashboard?book_id='.((isset($book)&&!empty($book))?$book->book_id:0).'&zone=utils&pill=disallowed-emails#tabs-utils" method="post" style="display:inline-block;margin-top:3px;float:right;">';
+				echo '<input type="hidden" name="action" value="do_save_disallowed_emails" />';
+				echo '<input type="hidden" name="emails" value="" />';
+				echo '<input type="submit" class="btn btn-default" value="Remove selected from list" />';
+				echo '</form>';
+				echo '<form id="do_save_disallowed_emails" action="'.confirm_slash(base_url()).'system/dashboard?book_id='.((isset($book)&&!empty($book))?$book->book_id:0).'&zone=utils&pill=disallowed-emails#tabs-utils" method="post" style="display:inline-block;margin-top:3px;">';
+				echo '<input type="hidden" name="action" value="do_save_disallowed_emails" />';
+				echo '<input type="hidden" name="emails" value="" />';
+				echo '<input type="text" name="email" value="" placeholder="name@example.com" class="form-control" style="display:inline-block;width:200px;position:relative;top:1px;" /> ';
+				echo '<input type="submit" value="Add email" class="btn btn-primary" /> &nbsp; ';
+				echo '</form>'."\n";
+			}
+			?>
+			<br />
+			<script>
+			$('#do_remove_disallowed_emails').on('submit', function() {
+    			var emails = [];
+    			$('#disallowed_emails_form').find('.div_list').find('input[type="checkbox"]').each(function() {
+        			var $this = $(this);
+        			if ($this.is(':checked')) return;
+    				var _email = $(this).val();
+    				emails.push(_email);
+    			});
+    			emails.sort();
+    			$(this).find('input[name="emails"]').val(emails.join(','));
+    			return true;
+			});
+    		$('#do_save_disallowed_emails').on('submit', function() {
+    			var email = $(this).find('[name="email"]').val();
+    			if (!email.length) return false;
+    			var emails = [email];
+    			$('#disallowed_emails_form').find('.div_list').find('input[type="checkbox"]').each(function() {
+    				var _email = $(this).val();
+    				emails.push(_email);
+    			});
+    			emails.sort();
+    			$(this).find('input[name="emails"]').val(emails.join(','));
+    			return true;
+    		});
+    		$('#disallowed_emails_form').find('.div_list').on('click', 'a', function() {
+    			$(this).parent().remove();
+    		});
+    		</script>
+		<?php endif; ?>
     	</div>
     	<div class="section" id="manage-books">
     	<?php if ('manage-books'==$pill): ?>

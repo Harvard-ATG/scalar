@@ -274,7 +274,7 @@ class Rdf extends MY_Controller {
 				if (!empty($version)) $this->data['use_versions'][$content->content_id] = $version->version_id;
 			}
 			// Don't throw an error here if $content is empty, let through to return empty RDF
-			if (!empty($content) && !$content->is_live && !$this->login_is_book_admin($this->data['book']->book_id)) $content = null; // Protect
+			if (!empty($content) && !$content->is_live && !$this->login_is_book_admin($this->data['book']->book_id) && $content->user != $this->data['login']->user_id) $content = null; // Protect
 			$this->$object->index(
 			 						   $this->data['content'],
 									   array(
@@ -293,6 +293,7 @@ class Rdf extends MY_Controller {
 									   	 'meta'			=> $this->data['include_meta'],
 									   	 'max_meta_recs'=> $this->data['meta_recursion'],
 									   	 'paywall_msg'	=> $this->can_bypass_paywall(),
+									   	 'lens_recurses'=> (($this->can_save_lenses()) ? $this->data['recursion']: RDF_Object::LENSES_NONE),
 									   	 'tklabeldata'	=> $this->tklabels(),
 									   	 'tklabels' 	=> (($this->data['tklabels'])?RDF_Object::TKLABELS_ALL:RDF_Object::TKLABELS_NONE),
 									   	 'is_book_admin'=> $this->login_is_book_admin()
@@ -377,16 +378,6 @@ class Rdf extends MY_Controller {
 		$this->template->render();
 		
 	}
-	
-	/**
-	 * Output a page's lens JSON
-	 */
-	
-	public function lens() {
-		
-		// TODO
-		
-	}
 
 	/**
 	 * Output information about a group of pages based on class name
@@ -430,11 +421,9 @@ class Rdf extends MY_Controller {
 				case 'tag':
 				case 'path':
 				case 'reference':
+				case 'lens':
 					$this->load->model($class.'_model', plural($class));
 					$model = plural($class);
-					break;
-				case 'lens':
-					// TODO
 					break;
 				case 'hidden':
 					if (!$this->data['login'] || !$this->login_is_book_admin()) {
@@ -495,6 +484,7 @@ class Rdf extends MY_Controller {
 			                           	 'prov'			=> (($this->data['provenance'])?RDF_Object::PROVENANCE_ALL:RDF_Object::PROVENANCE_NONE),
 			                         	 'pagination'   => $this->data['pagination'],
 			                         	 'max_recurses' => $this->data['recursion'],
+			                           	 'lens_recurses'=> (($this->can_save_lenses()) ? 0 : RDF_Object::LENSES_NONE),
 			                           	 'meta'			=> $this->data['include_meta'],
 			                           	 'max_meta_recs'=> $this->data['meta_recursion'],
 			                             'paywall_msg'	=> $this->can_bypass_paywall(),

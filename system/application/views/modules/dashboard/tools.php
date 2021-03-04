@@ -26,6 +26,33 @@ $(document).ready(function() {
 		$(this).find('[name="user_ids"]').val(user_ids.join(','));
 		return true;
 	});
+	$('#do_remove_disallowed_emails').on('submit', function() {
+		var emails = [];
+		$('#disallowed_emails_form').find('.div_list').find('input[type="checkbox"]').each(function() {
+			var $this = $(this);
+			if ($this.is(':checked')) return;
+			var _email = $(this).val();
+			emails.push(_email);
+		});
+		emails.sort();
+		$(this).find('input[name="emails"]').val(emails.join(','));
+		return true;
+	});
+	$('#do_save_disallowed_emails').on('submit', function() {
+		var email = $(this).find('[name="email"]').val();
+		if (!email.length) return false;
+		var emails = [email];
+		$('#disallowed_emails_form').find('.div_list').find('input[type="checkbox"]').each(function() {
+			var _email = $(this).val();
+			emails.push(_email);
+		});
+		emails.sort();
+		$(this).find('input[name="emails"]').val(emails.join(','));
+		return true;
+	});
+	$('#disallowed_emails_form').find('.div_list').on('click', 'a', function() {
+		$(this).parent().remove();
+	});
 	$('.div_list').find('input[type="checkbox"]').on('change', function() {
 		var checked = $(this).is(':checked') ? true : false;
 		if (checked) {
@@ -37,6 +64,69 @@ $(document).ready(function() {
 });
 </script>
 <h4>Admin Tools</h4>
+
+<form action="<?=confirm_slash(base_url())?>system/dashboard#tabs-tools" method="post">
+<input type="hidden" name="zone" value="tools" />
+<input type="hidden" name="action" value="enable_google_authenticator" />
+Google Authenticator
+<span style="float:right;">Enable two-factor authentication</span>
+<div style="margin-top:12px;"><div style="width:49%;float:left;"><?php 
+	$salt = $this->config->item('google_authenticator_salt');
+	if (empty($salt)) {
+		echo 'Two factor authentication is disabled. To enable, enter a "google_authenticator_salt" key in local_settings.php.'."\n";
+	} else {
+		echo 'To enable two-factor authentication for your super admin account (<b>'.$login->email.'</b>) first open Google Authenticator on your device and scan the QR code:<br />'."\n";
+		echo $qr_image;
+		echo '<br />';
+		echo 'Then, check the box below to enable two-factor authentication for your account:<br />';
+		echo '<label><input style="margin-top:8px;" type="checkbox" name="enable_google_authenticator" value="1" '.(($google_authenticator_is_enabled)?'checked':'').' /> &nbsp;Enable two-factor authentication for my account</labe><br />';
+		echo '<input type="submit" value="Save" style="margin-top:8px;" />';
+	}
+?></div><div style="width:49%;float:right;border-left:solid 1px #aaaaaa;padding-left:20px;">
+	List of super admins (<b>bold</b> = authentication enabled):<br /><br /><?php 
+	foreach ($super_admins as $admin) {
+		$enabled = (isset($admin->google_authenticator_is_enabled) && $admin->google_authenticator_is_enabled) ? true : false; 
+		echo (($enabled)?'<b>':'').$admin->fullname.' ('.$admin->email.')'.(($enabled)?'</b>':'').'<br />';
+	}
+	?>
+</div>
+</form>
+<br clear="both" /><br />
+<form action="<?=confirm_slash(base_url())?>system/dashboard#tabs-tools" method="post" id="disallowed_emails_form">
+<input type="hidden" name="zone" value="tools" />
+<input type="hidden" name="action" value="get_disallowed_emails" />
+List disallowed email addresses:&nbsp; <input type="submit" value="Generate" />&nbsp; <a href="?zone=tools#tabs-tools">clear</a>
+<span style="float:right;">Disallow email addresses from being used to register or login</span>
+<div class="div_list"><?php
+	if (!isset($disallowed_emails)) {
+
+	} elseif (empty($disallowed_emails)) {
+
+	} else {
+		foreach($disallowed_emails as $email) {
+			echo '<div><label>';
+			echo '<input type="checkbox" name="email[]" value="'.$email.'" /> &nbsp; ';
+			echo $email;
+			echo '</label></div>'."\n";
+		}
+	}
+echo '</div>'."\n";
+echo '</form>'."\n";
+if (isset($disallowed_emails)) {
+	echo '<form id="do_remove_disallowed_emails" action="'.confirm_slash(base_url()).'system/dashboard?zone=tools#tabs-tools" method="post" style="display:inline-block;margin-top:3px;float:right;">';
+	echo '<input type="hidden" name="action" value="do_save_disallowed_emails" />';
+	echo '<input type="hidden" name="emails" value="" />';
+	echo '<input type="submit" class="btn btn-default" value="Remove selected from list" />';
+	echo '</form>';
+	echo '<form id="do_save_disallowed_emails" action="'.confirm_slash(base_url()).'system/dashboard?zone=tools#tabs-tools" method="post" style="display:inline-block;margin-top:3px;">';
+	echo '<input type="hidden" name="action" value="do_save_disallowed_emails" />';
+	echo '<input type="hidden" name="emails" value="" />';
+	echo '<input type="text" name="email" value="" placeholder="name@example.com" class="form-control" style="display:inline-block;width:200px;position:relative;top:1px;" /> ';
+	echo '<input type="submit" value="Add email" class="btn btn-primary" /> &nbsp; ';
+	echo '</form>'."\n";
+}
+?>
+<br clear="both" /><br />
 <form action="<?=confirm_slash(base_url())?>system/dashboard#tabs-tools" method="post">
 <input type="hidden" name="zone" value="tools" />
 <input type="hidden" name="action" value="get_recent_book_list" />

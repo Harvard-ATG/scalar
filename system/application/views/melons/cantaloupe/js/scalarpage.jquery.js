@@ -373,7 +373,7 @@
                 }
 
                 if($(mediaelement.link).hasClass('wrap')){
-                    if(typeof infoElement != 'undefined'){
+                    if( typeof infoElement != 'undefined' && !isFullWidth){
                         infoElement.addClass('wrapped');
                     }
                     if(isFullWidth){
@@ -462,9 +462,9 @@
                 temp.remove();
 
             },
-            
+
             addInlineNoteElementForLink: function(link) {
-            	
+
             	link.wrap('<div class="inlineNoteBody body_copy"></div>');
             	link.text('Go to note').attr('href', $('link#parent').attr('href')+link.attr('resource'));
             	var wrapper = link.parent();
@@ -493,7 +493,7 @@
 	            			break;
 	            		default:
 	            			wrapper.css('float', 'left');
-	            	}           		
+	            	}
             	}
             	scalarapi.loadNode(slug, true, function(node) {
             		for (uri in node) {
@@ -518,7 +518,6 @@
 
             addMediaElementForLink: function(link, parent, height, baseOptions) {
 
-            	console.log(link);
                 var inline = link.hasClass('inline'),
                     size = link.attr('data-size'),
                     align = link.attr('data-align');
@@ -741,6 +740,8 @@
                         contextMarkup += '<p class="citation">Tagged by <a href="' + relation.body.url + '">&ldquo;' + relation.body.getDisplayTitle() + '&rdquo;</a></p>';
                     }
 
+                    contextMarkup += '<p><a id="visualize-this-link" href="javascript:;" class="btn btn-default btn-xs">Visualize...</a></p>';
+
                     $(".path-nav.info").remove();
                     if (contextMarkup != '') {
                         contextMarkup = '<div class="citations">' + contextMarkup + '</div>';
@@ -752,10 +753,46 @@
                             trigger: "click",
                             html: true,
                             content: contextMarkup,
-                            template: '<div class="context popover caption_font" role="tooltip"><div class="arrow"></div><h3 class="popover-title"></h3><div class="popover-content"></div>' });
-
+                            template: '<div class="context popover caption_font" role="tooltip"><div class="arrow"></div><h3 class="popover-title"></h3><div class="popover-content"></div>' }).on('inserted.bs.popover', function() {
+                              $('#visualize-this-link').on('click', function() {
+                                contextButton.popover('hide');
+                                page.visualizeCurrentPage();
+                              });
+                            });
                     }
                 }
+            },
+
+            visualizeCurrentPage: function() {
+              var options = {
+                modal: true
+              }
+              let currentNode = scalarapi.model.getCurrentPageNode();
+              options.content = 'lens';
+              options.lens = {
+                "visualization": {
+                  "type": "force-directed",
+                  "options": {}
+                },
+                "components": [
+                  {
+                    "content-selector": {
+                      "type": "specific-items",
+                      "items": [ currentNode.slug ]
+                    },
+                    "modifiers": [
+                      {
+                        "type": "filter",
+                        "subtype": "relationship",
+                        "content-types": ["all-types"],
+                        "relationship": "any-relationship"
+                      }
+                    ]
+                  }
+                ],
+                "sorts": []
+              }
+              $( '.modalVisualization' ).data( 'scalarvis' ).showModal( options );
             },
 
             allowAnyClickToDismissPopovers: function() {
@@ -1238,18 +1275,22 @@
             	var popover_template = '<div class="popover tk-help caption_font" role="tooltip"><div class="arrow"></div><div class="popover-content"></div></div>';
             	$labels.each(function() {
             		var $label = $(this);
-                    $label.parent().prepend($label);
+                $label.parent().prepend($label);
             		$label.css('display', 'inline-block');
             		var $url = $label.find('a[rel="art:url"]');
             		var url = $url.attr('href');
-            		$url.replaceWith('<img rel="art:url" src="'+url+'" data-toggle="popover" data-placement="bottom" />');
-                    $label.find('img').popover( {
-                        trigger: "click",
-                        html: true,
-                        template: popover_template,
-                        container: 'body',
-                        content: '<img src="'+url+'" /><p class="supertitle">Traditional Knowledge</p><h3 class="heading_weight">'+$label.find('[property="dcterms:title"]').text()+'</h3><p>'+$label.find('[property="dcterms:description"]').text()+'</p><p><a href="http://localcontexts.org/tk-labels/" target="_blank">More about Traditional Knowledge labels</a></p>'
-                    } );
+            		$url.replaceWith('<img tabindex="0" rel="art:url" src="'+url+'" data-toggle="popover" data-placement="bottom" />');
+                $label.find('img').popover( {
+                  trigger: "manual focus",
+                  html: true,
+                  template: popover_template,
+                  container: 'body',
+                  content: '<img src="'+url+'" /><p class="supertitle">Traditional Knowledge</p><h3 class="heading_weight">'+$label.find('[property="dcterms:title"]').text()+'</h3><p>'+$label.find('[property="dcterms:description"]').text()+'</p><p><a href="http://localcontexts.org/tk-labels/" target="_blank">More about Traditional Knowledge labels</a></p>'
+                });
+								$label.find('img').click(function(e) {
+									$(this).popover('toggle');
+									e.stopPropagation();
+								})
             	});
             	// Move labels to image header if present
             	if ($('.image_header').length) $('.image_header').prepend($labels.parent());
@@ -1449,7 +1490,7 @@
                 	}
                 	if (node.current.description != null && noteViewer.data('show-desc')) {
                 		$('<div class="description">' + node.current.description + '</div>').appendTo(noteViewer);
-                	}    	
+                	}
                     if (node.current.content != null && noteViewer.data('show-content')) {
 
                         var height = parseInt(noteViewer.css('max-height')) - noteViewer.innerHeight() - 50;
@@ -1628,6 +1669,20 @@
                 return mediaLinks;
             },
 
+            annotationHasMessage: function(annotation) {
+              let result = false;
+              if (annotation.body.current.properties['http://purl.org/dc/terms/abstract']) {
+                result = annotation.body.current.properties['http://purl.org/dc/terms/abstract'][0].value;
+              }
+              return result;
+            },
+
+            sendMessage: function(mediaelement, message) {
+          		if (message && mediaelement.view.mediaObjectView.hasFrameLoaded) {
+                mediaelement.sendMessage(message);
+          		}
+          	},
+
             // trigger media playback when links are clicked on
             handleMediaLinkClick: function(e) {
 
@@ -1643,8 +1698,8 @@
                         // the media if it isn't already playing
                         var annotationURL = $(this).data('targetAnnotation');
                         if (annotationURL != null) {
-
                             mediaelement.seek(mediaelement.model.initialSeekAnnotation);
+                            page.sendMessage(mediaelement, page.annotationHasMessage(mediaelement.model.initialSeekAnnotation));
                             if ((mediaelement.model.mediaSource.contentType != 'document') && (mediaelement.model.mediaSource.contentType != 'image')) {
                                 setTimeout(function() {
                                     if (!mediaelement.is_playing()) {
@@ -1714,6 +1769,48 @@
                 }
             },
 
+            addLensEditor: function() {
+              if ($('.page-lens-editor').length == 0) {
+                var div = $('<div class="page-lens-editor"></div>');
+                page.bodyContent().append(div);
+                div.wrap('<div class="paragraph_wrapper"><div class="body_copy"></div></div>');
+                $.when(
+                  $.getScript(views_uri+'/melons/cantaloupe/js/bootbox.min.js'),
+                  $("<link/>", {
+                     rel: "stylesheet",
+                     type: "text/css",
+                     href: views_uri+"/widgets/edit/content_selector.css"
+                  }).appendTo("head"),
+                  $.getScript(views_uri+'/widgets/edit/jquery.content_selector_bootstrap.js'),
+                  $.Deferred((deferred) => {
+                    $(deferred.resolve);
+                  })
+                ).done(() => {
+                  var visualization = $('.visualization');
+                  if (visualization.length == 0) {
+                    visualization = $('<div id="lens-visualization" class="visualization"><div class="body_copy caption_font">Loading data...</div></div>').appendTo(page.bodyContent());
+                  } else {
+                    visualization.empty();
+                  }
+                  div.ScalarLenses({onLensResults: this.handleLensResults})
+                });
+              }
+            },
+
+            handleLensResults: function(returnedLensData, currentLens) {
+              // always update the visualization type to current since it could be out of date
+              returnedLensData.visualization = currentLens.visualization;
+              if (returnedLensData.visualization) {
+                var visOptions = {
+                    modal: false,
+                    content: 'lens',
+                    lens: returnedLensData
+                };
+                $('#lens-visualization').empty();
+                $('#lens-visualization').scalarvis(visOptions);
+              }
+            },
+
             addMediaElements: function() {
 
                 var i, n,
@@ -1762,9 +1859,6 @@
                     } else {
                         page.bodyContent().append('<div class="body_copy"><p class="text-danger">The annotation editor could not be loaded because this is not a media page.</p></div>');
                     }
-
-                } else if ('lens' == extension) {
-                  // temporary place to call the lens plugin; will be removed later
 
                 } else if ('edit' == extension) {
                     // Nothing needed here
@@ -2024,7 +2118,7 @@
                                 page.structuredGallery.addMedia();
                             }
                             var mediaLinks = page.getMediaLinks($('article > span[property="sioc:content"],.relationships > .annotation_of'), true);
-                            
+
                             $(mediaLinks).each(function() {
                                 if ($(this).parents('widget_carousel').length > 0) {
                                     return;
@@ -2041,9 +2135,9 @@
                                     (($(this).attr('resource') != null) || // linked media
                                     ($(this).find('[property="art:url"]').length > 0) || // inline media
                                     (($(this).parents('.annotation_of').length > 0) && ($(this).parent('span[property="dcterms:title"]').length > 0))) // annotated media
-                                    && ($(this).attr('rev') != 'scalar:has_note') && ($(this).attr('data-relation') == null)) 
+                                    && ($(this).attr('rev') != 'scalar:has_note') && ($(this).attr('data-relation') == null))
                                     {
-                                    	
+
                                         var slot, slotDOMElement, slotMediaElement, count, parent;
 
                                         if ($(this).attr('resource') == undefined) {
@@ -2183,7 +2277,9 @@
             },
 
             handleDelayedResize: function() {
-                if ((page.initialMediaLoad === true) && !page.isFullScreen && (document.location.href.indexOf('.annotation_editor') == -1)) {
+              var fullscreenElement = document.fullscreenElement || document.mozFullScreenElement || document.webkitFullscreenElement;
+              page.isFullScreen = (fullscreenElement != null);
+              if ((page.initialMediaLoad === true) && !page.isFullScreen && (document.location.href.indexOf('.annotation_editor') == -1)) {
                     var reload = false;
                     page.orientation = window.orientation;
                     if ($('body').width() <= page.mobileWidth) {
@@ -2752,18 +2848,18 @@
 
             page.getContainingPathInfo();
 
-    		var cover_video = function() {  // Have <video> tag mimic background-size:cover
-    			$video = $(this);
-    			var scale_h = parseInt($video.parent().width()) / $video.data('orig_w');
-    			var scale_v = parseInt($video.parent().height()) / $video.data('orig_h');
-    			var scale = scale_h > scale_v ? scale_h : scale_v;
-                $video.parent().height($video.parent().height());
-    			$video.width(scale * $video.data('orig_w'));
-    			$video.height(scale * $video.data('orig_h'));
-        		$video.parent().scrollLeft( ($video.width() - $video.parent().width()) * .5 );
-        		$video.parent().scrollTop( ($video.height() - $video.parent().height()) * .5 );
-                $video.show();
-    		}
+        		var cover_video = function() {  // Have <video> tag mimic background-size:cover
+        			$video = $(this);
+        			var scale_h = parseInt($video.parent().parent().width()) / $video.data('orig_w');
+        			var scale_v = parseInt($video.parent().parent().height()) / $video.data('orig_h');
+        			var scale = scale_h > scale_v ? scale_h : scale_v;
+              $video.parent().height($video.parent().parent().height());
+        			$video.width(scale * $video.data('orig_w'));
+        			$video.height(scale * $video.data('orig_h'));
+            	$video.parent().scrollLeft( ($video.width() - $video.parent().width()) * .5 );
+            	$video.parent().scrollTop( ($video.height() - $video.parent().height()) * .5 );
+              $video.show();
+        		}
 
             switch (viewType) {
 
@@ -2985,73 +3081,218 @@
                                 case "vis":
                                 case "visindex":
                                     visOptions = {
-                                        modal: false,
-                                        content: 'all',
-                                        relations: 'all',
-                                        format: 'grid'
+                                      modal: false,
+                                      content: 'lens',
+                                      lens: {
+                                        "visualization": {
+                                          "type": "grid",
+                                          "options": {}
+                                        },
+                                        "components": [
+                                          {
+                                            "content-selector": {
+                                              "type": "items-by-type",
+                                              "content-type": "all-content"
+                                            },
+                                            "modifiers": [
+                                              {
+                                                "type": "sort",
+                                                "sort-type": "alphabetical",
+                                                "metadata-field": "dcterms:title",
+                                                "sort-order": "ascending"
+                                              }
+                                            ]
+                                          }
+                                        ]
+                                      }
                                     }
                                     break;
 
                                 case "vistoc":
                                     visOptions = {
-                                        modal: false,
-                                        content: 'toc',
-                                        relations: 'all',
-                                        format: 'tree'
+                                      modal: false,
+                                      content: 'lens',
+                                      lens: {
+                                        "visualization": {
+                                          "type": "tree",
+                                          "options": {}
+                                        },
+                                        "components": [
+                                          {
+                                            "content-selector": {
+                                              "type": "items-by-type",
+                                              "content-type": "table-of-contents"
+                                            },
+                                            "modifiers": [{
+                                                "type": "filter",
+                                                "subtype": "relationship",
+                                                "content-types": [
+                                                    "all-types"
+                                                ],
+                                                "relationship": "child"
+                                            }]
+                                          }
+                                        ]
+                                      }
                                     }
                                     break;
 
                                 case "visconnections":
                                     visOptions = {
-                                        modal: false,
-                                        content: 'all',
-                                        relations: 'all',
-                                        format: 'force-directed'
+                                      modal: false,
+                                      content: 'lens',
+                                      lens: {
+                                        "visualization": {
+                                          "type": "force-directed",
+                                          "options": {}
+                                        },
+                                        "components": [
+                                          {
+                                            "content-selector": {
+                                              "type": "items-by-type",
+                                              "content-type": "all-content"
+                                            },
+                                            "modifiers": []
+                                          }
+                                        ]
+                                      }
                                     }
                                     break;
 
                                 case "visradial":
                                     visOptions = {
-                                        modal: false,
-                                        content: 'all',
-                                        relations: 'all',
-                                        format: 'radial'
+                                      modal: false,
+                                      content: 'lens',
+                                      lens: {
+                                        "visualization": {
+                                          "type": "radial",
+                                          "options": {}
+                                        },
+                                        "components": [
+                                          {
+                                            "content-selector": {
+                                              "type": "items-by-type",
+                                              "content-type": "all-content"
+                                            },
+                                            "modifiers": []
+                                          }
+                                        ]
+                                      }
                                     }
                                     break;
 
                                 case "vispath":
                                     visOptions = {
-                                        modal: false,
-                                        content: 'current',
-                                        relations: 'path',
-                                        format: 'tree'
+                                      modal: false,
+                                      content: 'lens',
+                                      lens: {
+                                        "visualization": {
+                                          "type": "tree",
+                                          "options": {}
+                                        },
+                                        "components": [
+                                          {
+                                            "content-selector": {
+                                              "type": "specific-items",
+                                              "items": [currentNode.slug]
+                                            },
+                                            "modifiers": [
+                                              {
+                                                "type": "filter",
+                                                "subtype": "relationship",
+                                                "content-types": [
+                                                  "path"
+                                                ],
+                                                "relationship": "child"
+                                              }
+                                            ]
+                                          }
+                                        ],
+                                      }
                                     }
                                     break;
 
                                 case "vismedia":
                                     visOptions = {
-                                        modal: false,
-                                        content: 'current',
-                                        relations: 'reference',
-                                        format: 'force-directed'
+                                      modal: false,
+                                      content: 'lens',
+                                      lens: {
+                                        "visualization": {
+                                          "type": "force-directed",
+                                          "options": {}
+                                        },
+                                        "components": [
+                                          {
+                                            "content-selector": {
+                                              "type": "specific-items",
+                                              "items": [currentNode.slug]
+                                            },
+                                            "modifiers": [
+                                              {
+                                                "type": "filter",
+                                                "subtype": "relationship",
+                                                "content-types": [
+                                                  "reference"
+                                                ],
+                                                "relationship": "any-relationship"
+                                              }
+                                            ]
+                                          }
+                                        ],
+                                      }
                                     }
                                     break;
 
                                 case "vistag":
                                     visOptions = {
-                                        modal: false,
-                                        content: 'current',
-                                        relations: 'tag',
-                                        format: 'force-directed'
+                                      modal: false,
+                                      content: 'lens',
+                                      lens: {
+                                        "visualization": {
+                                          "type": "force-directed",
+                                          "options": {}
+                                        },
+                                        "components": [
+                                          {
+                                            "content-selector": {
+                                              "type": "specific-items",
+                                              "items": [currentNode.slug]
+                                            },
+                                            "modifiers": [
+                                              {
+                                                "type": "filter",
+                                                "subtype": "relationship",
+                                                "content-types": [
+                                                  "tag"
+                                                ],
+                                                "relationship": "child"
+                                              }
+                                            ]
+                                          }
+                                        ],
+                                      }
                                     }
                                     break;
 
                                 case "tags":
                                     visOptions = {
-                                        modal: false,
-                                        content: 'external',
-                                        relations: 'none',
-                                        format: 'tagcloud'
+                                      modal: false,
+                                      content: 'lens',
+                                      lens: {
+                                        "visualization": {
+                                          "type": "word-cloud",
+                                          "options": {}
+                                        },
+                                        "components": [
+                                          {
+                                            "content-selector": {
+                                              "type": "items-by-type",
+                                              "content-type": "tag"
+                                            },
+                                            "modifiers": []
+                                          }
+                                        ],
+                                      }
                                     }
                                     break;
 
@@ -3124,7 +3365,7 @@
                                                     url: relNode.sourceFile,
                                                     thumbnail: thumbnail_url
                                                 };
-                                                var mediaType = TL.MediaType(entry.media);
+                                                var mediaType = TL.lookupMediaType(entry.media);
 
                                                 if(mediaType.type=='imageblank' && thumbnail_url != null){
                                                     entry.media.url = thumbnail_url;
@@ -3316,6 +3557,9 @@
                     if (viewType != 'edit') {
                         page.addContext();
                         page.allowAnyClickToDismissPopovers();
+                    }
+                    if ($("[property|='scalar:isLensOf']").length > 0 && viewType == 'plain') {
+                      page.addLensEditor();
                     }
                     break;
 

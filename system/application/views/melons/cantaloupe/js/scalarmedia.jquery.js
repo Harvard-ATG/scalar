@@ -60,7 +60,8 @@
 									if ( $( event.target ).is( 'td,h4,div,p,tr' ) ) {
 										var relation = $(this).data('relation');
 										$(this).data('media').seek(relation);
-										if (( relation.target.current.mediaSource.contentType != 'document' ) && ( relation.target.current.mediaSource.contentType != 'image' )) {
+                    media.sendMessage($(this).data('media'), media.annotationHasMessage(relation));
+										if (( relation.target.current.mediaSource.contentType != 'document' ) && ( relation.target.current.mediaSource.contentType != 'image' ) && ( relation.target.current.mediaSource.contentType != '3D' )) {
 						       				setTimeout(function() {
 						           				if(!$(this).data('media').is_playing()) {
 													$(this).data('media').play();
@@ -121,6 +122,20 @@
 					}
 				}
 			},
+
+      annotationHasMessage: function(annotation) {
+        let result = false;
+        if (annotation.body.current.properties['http://purl.org/dc/terms/abstract']) {
+          result = annotation.body.current.properties['http://purl.org/dc/terms/abstract'][0].value;
+        }
+        return result;
+      },
+
+      sendMessage: function(mediaelement, message) {
+    		if (message && mediaelement.view.mediaObjectView.hasFrameLoaded) {
+          mediaelement.sendMessage(message);
+    		}
+    	},
 
 			hideAnnotation: function(e, relation, m, forceHide) {
 
@@ -304,25 +319,29 @@
 				var descriptionPane = $('<div class="media_description pane"></div>').appendTo(element);
 
 				// add TK labels
-            	var labels = node.current.properties['http://localcontexts.org/tk/hasLabel'];
-            	if ('undefined' != typeof(window['tklabels']) && labels != null) {
-	                var popoverTemplate = '<div class="popover tk-help caption_font" role="tooltip"><div class="arrow"></div><div class="popover-content"></div></div>';
-	                var labelWrapper = $('<div class="tk-labels-media"></div>').appendTo(descriptionPane);
-	                var $label, $img, labelNode, url, labelDescription;
-	            	$(labels).each(function() {
-	            		var $label = $('<span resource="'+this.value+'" typeof="tk:TKLabel" style="display:inline-block;"></span>').appendTo(labelWrapper);
-	            		var labelNode = scalarapi.model.nodesByURL[this.value];
-	            		var url = labelNode.properties['http://simile.mit.edu/2003/10/ontologies/artstor#url'][0].value;
-	            		var labelDescription = labelNode.properties['http://purl.org/dc/terms/description'][0].value;
-	            		var $img = $('<img rel="art:url" src="'+url+'" data-toggle="popover" data-placement="top" />').appendTo($label);
-	                    $img.popover({
-	                        trigger: "click",
-	                        html: true,
-	                        template: popoverTemplate,
-	                        content: '<img src="'+url+'" /><p class="supertitle">Traditional Knowledge</p><h3 class="heading_weight">'+labelNode.title+'</h3><p>'+labelDescription+'</p><p><a href="http://localcontexts.org/tk-labels/" target="_blank">More about Traditional Knowledge labels</a></p>'
-	                    });
-	            	});
-            	}
+      	var labels = node.current.properties['http://localcontexts.org/tk/hasLabel'];
+      	if ('undefined' != typeof(window['tklabels']) && labels != null) {
+          var popoverTemplate = '<div class="popover tk-help caption_font" role="tooltip"><div class="arrow"></div><div class="popover-content"></div></div>';
+          var labelWrapper = $('<div class="tk-labels-media"></div>').appendTo(descriptionPane);
+          var $label, $img, labelNode, url, labelDescription;
+      	  $(labels).each(function() {
+        		var $label = $('<span resource="'+this.value+'" typeof="tk:TKLabel" style="display:inline-block;"></span>').appendTo(labelWrapper);
+        		var labelNode = scalarapi.model.nodesByURL[this.value];
+        		var url = labelNode.properties['http://simile.mit.edu/2003/10/ontologies/artstor#url'][0].value;
+        		var labelDescription = labelNode.properties['http://purl.org/dc/terms/description'][0].value;
+        		var $img = $('<img tabindex="0" rel="art:url" src="'+url+'" data-toggle="popover" data-placement="top" />').appendTo($label);
+            $img.popover({
+              trigger: "manual focus",
+              html: true,
+              template: popoverTemplate,
+              content: '<img src="'+url+'" /><p class="supertitle">Traditional Knowledge</p><h3 class="heading_weight">'+labelNode.title+'</h3><p>'+labelDescription+'</p><p><a href="http://localcontexts.org/tk-labels/" target="_blank">More about Traditional Knowledge labels</a></p>'
+            });
+						$(labels).find('img').click(function(e) {
+							$(this).popover('toggle');
+							e.stopPropagation();
+						})
+        	});
+      	}
 
 				if (node.current.source != null) {
 					if (media.options.caption != 'metadata') {
@@ -395,8 +414,9 @@
 						if ( $( event.target ).is( 'td,h4,div,p,tr' ) ) {
 							var relation = $(this).data('relation');
 							$(this).data('media').seek(relation);
+              media.sendMessage($(this).data('media'), media.annotationHasMessage(relation));
 							var me = this;
-							if (( relation.target.current.mediaSource.contentType != 'document' ) && ( relation.target.current.mediaSource.contentType != 'image' )) {
+							if (( relation.target.current.mediaSource.contentType != 'document' ) && ( relation.target.current.mediaSource.contentType != 'image' ) && ( relation.target.current.mediaSource.contentType != '3D' )) {
 	              				setTimeout(function() {
 	                				if(!$(me).data('media').is_playing()) {
 	      								$(me).data('media').play();

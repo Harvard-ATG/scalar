@@ -60,6 +60,16 @@ $config['register_key'] = array();
 $config['max_login_attempts'] = 6;
 $config['max_login_attempts_penalty_seconds'] = 120;
 
+// To enable two-factor authentication (using the Google Authenticator), enter a salt string here
+// The string needs to be a 'base32' string 'without equals signs at the end' or the QR barcode will not work
+$config['google_authenticator_salt'] = '';
+
+// Enable stronger-password verification (min 16 characters, can't use previous passwords)
+$config['strong_password'] = false;
+
+// If 'strong_password' is enabled, number of days until the user is requested to reset their password (e.g., 60)
+$config['strong_password_days_to_reset'] = 60;
+
 // Soundcloud key
 $config['soundcloud_id'] = (getenv('SCALAR_SOUNDCLOUD_ID') ? getenv('SCALAR_SOUNDCLOUD_ID') : '');
 

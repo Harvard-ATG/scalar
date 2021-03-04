@@ -152,12 +152,17 @@ getPropertyValue:function(a){return this[a]||""},item:function(){},removePropert
 
             base.currentNode = scalarapi.model.getCurrentPageNode();
 
+
+            base.userId = 'unknown';
             if(base.logged_in){
                 //While we are logged in, check what our user level is, and set the appropriate bools
                 base.is_author = $('link#user_level').length > 0 && $('link#user_level').attr('href')=='scalar:Author';
                 base.is_commentator = $('link#user_level').length > 0 && $('link#user_level').attr('href')=='scalar:Commentator';
                 base.is_reviewer = $('link#user_level').length > 0 && $('link#user_level').attr('href')=='scalar:Reviewer';
                 base.is_editor = $('link#user_level').length > 0 && $('link#user_level').attr('href')=='scalar:Editor';
+                base.is_reader = $('link#user_level').length > 0 && $('link#user_level').attr('href')=='scalar:Reader';
+                let temp = $('link#logged_in').attr('href').split('/');
+                base.userId = parseInt(temp[temp.length - 1]);
 
                 if(base.is_author || base.is_commentator || base.is_reviewer || base.is_editor){
                      base.$el.addClass('edit_enabled');
@@ -179,6 +184,8 @@ getPropertyValue:function(a){return this[a]||""},item:function(){},removePropert
             if(base.usingHypothesis){
                 base.$el.addClass('hypothesis_active');
             }
+
+            var lenses_are_active = ('true' == $('link#lenses_are_active').attr('href')) ? true : false;
 
             //Store the home URL so that we can use these later without making extra queries on the DOM
             var home_url = base.$el.find('#book-title').attr("href");
@@ -245,9 +252,15 @@ getPropertyValue:function(a){return this[a]||""},item:function(){},removePropert
                                                             '<li><i class="loader"></i></li>'+
                                                         '</ul>'+
                                                     '</li>'+
+                                                    (lenses_are_active ? '<li id="lenses_menu" class="dropdown">'+
+                                                        '<a role="button" aria-expanded="false"><span class="menuIcon rightArrowIcon pull-right"></span><span class="menuIcon" id="lensIcon"></span>Lenses</a>'+
+                                                        '<ul class="dropdown-menu" role="menu">'+
+                                                        '</ul>'+
+                                                    '</li>' : '')+
                                                     '<li id="vis_menu" class="dropdown">'+
                                                         '<a role="button" aria-expanded="false"><span class="menuIcon rightArrowIcon pull-right"></span><span class="menuIcon" id="visIcon"></span>Visualizations</a>'+
                                                         '<ul class="dropdown-menu" role="menu">'+
+                                                            '<li class="vis_link" data-vistype="viscurrent"><a role="button"><span class="menuIcon" id="currentIcon"></span> Current</a></li>'+
                                                             '<li class="vis_link" data-vistype="vistoc"><a role="button"><span class="menuIcon" id="tocIcon"></span> Contents</a></li>'+
                                                             '<li class="vis_link" data-vistype="visconnections"><a role="button"><span class="menuIcon" id="connectionsIcon"></span> Connections</a></li>'+
                                                             '<li class="vis_link" data-vistype="visindex"><a role="button"><span class="menuIcon" id="gridIcon"></span> Grid</a></li>'+
@@ -321,8 +334,8 @@ getPropertyValue:function(a){return this[a]||""},item:function(){},removePropert
                                                             '<a role="button" aria-expanded="false"><span class="menuIcon rightArrowIcon pull-right"></span>Other archives</a>'+
                                                             '<ul class="dropdown-menu" role="menu">'+
                                                                 '<li><a href="' + base.get_param(scalarapi.model.urlPrefix + 'import/omeka') + '">Omeka sites</a></li>'+
+                                                                '<li><a href="' + base.get_param(scalarapi.model.urlPrefix + 'import/omeka_s') + '">Omeka S sites</a></li>'+
                                                                 '<li><a href="' + base.get_param(scalarapi.model.urlPrefix + 'import/soundcloud') + '">SoundCloud</a></li>'+
-                                                                '<li><a href="' + base.get_param(scalarapi.model.urlPrefix + 'import/vimeo') + '">Vimeo</a></li>'+
                                                                 '<li><a href="' + base.get_param(scalarapi.model.urlPrefix + 'import/youtube') + '">YouTube</a></li>'+
                                                             '</ul>'+
                                                         '</li>'+
@@ -578,65 +591,243 @@ getPropertyValue:function(a){return this[a]||""},item:function(){},removePropert
                 $('#scalarheader.navbar').data('scalarheader').index.data('plugin_scalarindex').showIndex();
             });
 
-
             //Handle the visualizations...
             var visElement = $( '<div></div>' ).prependTo( 'body' );
             base.vis = visElement.scalarvis( { modal: true, local: false } );
             base.$el.find('.vis_link').on('click', function(e){
 
                 var options = {
-                    modal: true
+                  modal: true
                 }
 
                 switch ( $( this ).attr( 'data-vistype' ) ) {
 
                     case "visconnections":
-                    options.content = 'all';
-                    options.relations = 'all';
-                    options.format = 'force-directed';
+                    options.content = 'lens';
+                    options.lens = {
+                      "visualization": {
+                        "type": "force-directed",
+                        "options": {}
+                      },
+                      "components": [
+                        {
+                          "content-selector": {
+                            "type": "items-by-type",
+                            "content-type": "all-content"
+                          },
+                          "modifiers": [{
+                              "type": "filter",
+                              "subtype": "relationship",
+                              "content-types": [
+                                  "all-types"
+                              ],
+                              "relationship": "any-relationship"
+                          }]
+                        }
+                      ],
+                      "sorts": []
+                    }
                     break;
 
                     case "vistoc":
-                    options.content = 'toc';
-                    options.relations = 'all';
-                    options.format = 'tree';
+                    options.content = 'lens';
+                    options.lens = {
+                      "visualization": {
+                        "type": "tree",
+                        "options": {}
+                      },
+                      "components": [
+                        {
+                          "content-selector": {
+                            "type": "items-by-type",
+                            "content-type": "table-of-contents"
+                          },
+                          "modifiers": [{
+                              "type": "filter",
+                              "subtype": "relationship",
+                              "content-types": [
+                                  "all-types"
+                              ],
+                              "relationship": "child"
+                          }]
+                        }
+                      ],
+                      "sorts": []
+                    }
                     break;
 
                     case "vis":
                     case "visindex":
-                    options.content = 'all';
-                    options.relations = 'all';
-                    options.format = 'grid';
+                    options.content = 'lens';
+                    options.lens = {
+                      "visualization": {
+                        "type": "grid",
+                        "options": {}
+                      },
+                      "components": [
+                        {
+                          "content-selector": {
+                            "type": "items-by-type",
+                            "content-type": "all-content"
+                          },
+                          "modifiers": [
+                            {
+                              "type": "filter",
+                              "subtype": "relationship",
+                              "content-types": [
+                                  "all-types"
+                              ],
+                              "relationship": "any-relationship"
+                            }
+                          ]
+                        }
+                      ],
+                      "sorts": []
+                    }
                     break;
 
                     case "visradial":
-                    options.content = 'all';
-                    options.relations = 'all';
-                    options.format = 'radial';
+                    options.content = 'lens';
+                    options.lens = {
+                      "visualization": {
+                        "type": "radial",
+                        "options": {}
+                      },
+                      "components": [
+                        {
+                          "content-selector": {
+                            "type": "items-by-type",
+                            "content-type": "all-content"
+                          },
+                          "modifiers": [{
+                              "type": "filter",
+                              "subtype": "relationship",
+                              "content-types": [
+                                  "all-types"
+                              ],
+                              "relationship": "any-relationship"
+                          }]
+                        }
+                      ],
+                      "sorts": []
+                    }
                     break;
 
                     case "vispath":
-                    options.content = 'path';
-                    options.relations = 'path';
-                    options.format = 'tree';
+                    options.content = 'lens';
+                    options.lens = {
+                      "visualization": {
+                        "type": "tree",
+                        "options": {}
+                      },
+                      "components": [
+                        {
+                          "content-selector": {
+                            "type": "items-by-type",
+                            "content-type": "path"
+                          },
+                          "modifiers": [
+                            {
+                              "type": "filter",
+                              "subtype": "relationship",
+                              "content-types": [
+                                "path"
+                              ],
+                              "relationship": "child"
+                            }
+                          ]
+                        }
+                      ],
+                      "sorts": []
+                    }
                     break;
 
                     case "vismedia":
-                    options.content = 'media';
-                    options.relations = 'reference';
-                    options.format = 'force-directed';
+                    options.content = 'lens';
+                    options.lens = {
+                      "visualization": {
+                        "type": "force-directed",
+                        "options": {}
+                      },
+                      "components": [
+                        {
+                          "content-selector": {
+                            "type": "items-by-type",
+                            "content-type": "media"
+                          },
+                          "modifiers": [
+                            {
+                              "type": "filter",
+                              "subtype": "relationship",
+                              "content-types": [
+                                "reference"
+                              ],
+                              "relationship": "any-relationship"
+                            }
+                          ]
+                        }
+                      ],
+                      "sorts": []
+                    }
                     break;
 
                     case "vistag":
-                    options.content = 'tag';
-                    options.relations = 'tag';
-                    options.format = 'force-directed';
+                    options.content = 'lens';
+                    options.lens = {
+                      "visualization": {
+                        "type": "force-directed",
+                        "options": {}
+                      },
+                      "components": [
+                        {
+                          "content-selector": {
+                            "type": "items-by-type",
+                            "content-type": "tag"
+                          },
+                          "modifiers": [
+                            {
+                              "type": "filter",
+                              "subtype": "relationship",
+                              "content-types": [
+                                "tag"
+                              ],
+                              "relationship": "child"
+                            }
+                          ]
+                        }
+                      ],
+                      "sorts": []
+                    }
                     break;
 
+                    case "viscurrent":
+                    options.content = 'lens';
+                    options.lens = {
+                      "visualization": {
+                        "type": "force-directed",
+                        "options": {}
+                      },
+                      "components": [
+                        {
+                          "content-selector": {
+                            "type": "specific-items",
+                            "items": [ base.currentNode.slug ]
+                          },
+                          "modifiers": [
+                            {
+                              "type": "filter",
+                              "subtype": "relationship",
+                              "content-types": ["all-types"],
+                              "relationship": "any-relationship"
+                            }
+                          ]
+                        }
+                      ],
+                      "sorts": []
+                    }
+                    break;
                 }
-
                 $( '.modalVisualization' ).data( 'scalarvis' ).showModal( options );
-
             });
 
             base.book_id = $('link#book_id').attr('href');
@@ -657,6 +848,11 @@ getPropertyValue:function(a){return this[a]||""},item:function(){},removePropert
             }).on('pageLoadComplete',function(){
               $('#desktopTitleWrapper').trigger("update");
             });
+
+            if (lenses_are_active) {
+              $('body').on('lensUpdated', base.getLensData);
+              base.getLensData();
+            }
 
             $( '#ScalarHeaderHelp>a' ).on('click', function(e) {
                 base.help.data( 'plugin_scalarhelp' ).toggleHelp();
@@ -969,7 +1165,6 @@ getPropertyValue:function(a){return this[a]||""},item:function(){},removePropert
         }
         base.buildSubItem = function($container){
             var slug = $container.data('slug');
-
         }
         base.expandMenu = function(node,n){
             var expanded_menu = $('#mainMenuSubmenus');
@@ -1445,6 +1640,78 @@ getPropertyValue:function(a){return this[a]||""},item:function(){},removePropert
             }
         }
 
+        base.getLensData = function(){
+          let bookId = $('link#book_id').attr('href');
+          let baseURL = $('link#approot').attr('href').replace('application', 'lenses');
+          let mainURL = `${baseURL}?book_id=${bookId}`;
+          $.ajax({
+            url:mainURL,
+            type: "GET",
+            dataType: 'json',
+            contentType: 'application/json',
+            async: true,
+            context: this,
+            success: base.handleLensData,
+            error: function error(response) {
+               console.log('There was an error attempting to communicate with the server.');
+               console.log(response);
+            }
+          });
+        }
+
+        base.handleLensData = function(response){
+          let data = response;
+          let privateLensArray = [];
+          let publicLensArray = [];
+
+          data.forEach(lens => {
+            if (lens.public) {
+              publicLensArray.push(lens);
+            } else if (lens.user_id == base.userId) {
+              privateLensArray.push(lens);
+            }
+          });
+          let lensMenu = $('#lenses_menu>ul');
+          lensMenu.empty();
+
+          let manageLinkTitle = "Browse Lenses";
+          if (base.is_author || base.is_editor) {
+            manageLinkTitle = "Manage Lenses";
+          }
+
+          // private lenses
+          if (privateLensArray.length > 0) {
+            lensMenu.append('<li class="header"><h2>My Private Lenses</h2></li>');
+            privateLensArray.forEach(privateLensItem => {
+              let vizType = privateLensItem.visualization.type;
+              let lensLink = $('link#parent').attr('href') + privateLensItem.slug;
+              let markup = $(`
+                <li class="lens">
+                  <a href="${lensLink}"><span class="title">${privateLensItem.title}</span>
+                  <span class="viz-icon ${vizType}"></span>
+                </li>`
+              ).appendTo(lensMenu);
+            });
+          }
+
+          // public lenses
+          if (publicLensArray.length > 0) {
+            lensMenu.append('<li class="header"><h2>Author Lenses</h2></li>');
+            publicLensArray.forEach(publicLensItem => {
+              let vizType = publicLensItem.visualization.type;
+              let lensLink = $('link#parent').attr('href') + publicLensItem.slug;
+              let markup = $(`
+                <li class="lens">
+                  <a href="${lensLink}"><span class="title">${publicLensItem.title}</span>
+                  <span class="viz-icon ${vizType}"></span>
+                </li>`
+              ).appendTo(lensMenu);
+            });
+          }
+
+          lensMenu.append('<li class="vis_link"><a role="button" href="' + base.get_param(scalarapi.model.urlPrefix + 'manage_lenses') + '"><span class="menuIcon" id="lensIcon"></span> ' + manageLinkTitle + '</a></li>');
+        };
+
         base.initSubmenus = function(el){
             var li = $(el).is('li.dropdown')?$(el):$(el).parent('li.dropdown');
             var a = $(el).is('li.dropdown>a')?$(el):$(el).children('a').first();
@@ -1716,9 +1983,7 @@ getPropertyValue:function(a){return this[a]||""},item:function(){},removePropert
     };
 
     $.fn.scalarheader = function(options){
-        return this.each(function(){
-            (new $.scalarheader(this, options));
-        });
+        return new $.scalarheader(this, options);
     };
 
 })(jQuery);

@@ -10,7 +10,7 @@
  * echo '<p>';
  * echo 'Scalar version number: ';
  * $this->load->view('scalar-version',true);
- * echo '</p>';   
+ * echo '</p>';
  */
 ?>
-2.5.12
+2.5.15

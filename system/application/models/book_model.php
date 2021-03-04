@@ -727,7 +727,9 @@ class Book_model extends MY_Model {
 				$media_url = $this->config->item('media_url') ? $this->config->item('media_url') : base_url();
 				$old = confirm_slash($media_url).confirm_slash($slug);
 				$new = confirm_slash($media_url).confirm_slash($array['slug']);
-				// List of versions for this book
+
+                                // List of versions for this book
+
 				$this->db->select($this->versions_table.'.version_id');
 				$this->db->from($this->versions_table);
 				$this->db->join($this->pages_table, $this->versions_table.'.content_id='.$this->pages_table.'.content_id');

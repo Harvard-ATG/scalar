@@ -74,7 +74,7 @@ class OAC_Object extends RDF_Object {
     	if (!isset($CI->pages) || 'object'!=gettype($CI->pages)) $CI->load->model('page_model','pages');
     	if (!isset($CI->versions) || 'object'!=gettype($CI->versions)) $CI->load->model('version_model','versions');
     	$return = array();
-    	
+
     	// Validate the book and get the page based on the target URL
     	if (empty($book) || !isset($book->book_id)) return $return;
     	$book_url = base_url() . $book->slug . '/';
@@ -92,7 +92,7 @@ class OAC_Object extends RDF_Object {
     	
     		// Relational fields
     		if (empty($page->versions)) return $return;
-    		$return['rdf:type'] = $CI->versions->rdf_type('media');
+    		$return['rdf:type'] = $CI->versions->rdf_type('composite');
     		$return['scalar:child_type'] = $CI->versions->rdf_type('version');
 	    	$return['scalar:child_urn'] = $CI->versions->urn($page->versions[$page->version_index]->version_id);
 	    	$return['scalar:child_rel'] = 'annotated';
@@ -106,6 +106,10 @@ class OAC_Object extends RDF_Object {
 	    		}
 	    	}
 	    	foreach ($arr['target']['selector'] as $el) {
+	    		if ('SvgSelector' == $el['type']) {
+	    			$value = $el['value'];
+	    			$return['dcterms:spatial'] = $value;
+	    		}
 	    		if ('FragmentSelector' == $el['type']) {
 	    			$value = $el['value'];
 	    			$value = str_replace('npt:', '', $value);
@@ -281,6 +285,15 @@ class OAC_Object extends RDF_Object {
     					)
     			)
     	);
+    	if (isset($node->versions[$node->version_index]->rdf) && isset($node->versions[$node->version_index]->rdf['http://purl.org/dc/terms/spatial'])) {
+    		$svg = $node->versions[$node->version_index]->rdf['http://purl.org/dc/terms/spatial'][0]['value'];
+    		if (substr($svg, 0, 4) == '<svg') {
+    			$row['target']['selector'][] = array(
+    				"type" => "SvgSelector",
+    				"value" => $svg
+    			);
+    		}
+    	}
     	if (isset($node->versions[$node->version_index]->additional) && !empty($node->versions[$node->version_index]->additional)) {
     		$row['target']['selector'][] = array(
     			"type" => "SvgSelector",

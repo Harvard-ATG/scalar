@@ -136,9 +136,9 @@ function validate_edit_form(form, no_action) {
 				return false;
 			}
 		}
-    if ($('#media_file_url_iiif')){
-      $('#media_file_url_iiif').val = $('#media_file_url_iiif').checked === true ? 1 : 0;
-    }
+                if ($('#media_file_url_iiif')) {
+                    $('#media_file_url_iiif').val = $('#media_file_url_iiif').checked === true ? 1 : 0;
+                }
 		return true;
 	};
 
@@ -263,6 +263,11 @@ function send_form($form, additional_values, success, redirect_url) {
     values['scalar:url'] = values['scalar:url'].concat('?iiif-manifest=1');
   } 
 
+        // if user indicates the url is a iiif manifest
+        if (values['iiif-url'] && values['iiif-url'] === "on" && values['scalar:url'].indexOf('?iiif-manifest=1') === -1) {
+            values['scalar:url'] = values['scalar:url'].concat('?iiif-manifest=1');
+        }
+
 	if ('undefined'==typeof(success) || null==success) {
 		success = function(version) {
 		    for (var version_uri in version) break;
@@ -307,6 +312,7 @@ function send_form_relationships($form, version_urn, success, redirect_url) {
 	values['annotation_of_start_line_num'] = $('input[name="annotation_of_start_line_num"]');
 	values['annotation_of_end_line_num'] = $('input[name="annotation_of_end_line_num"]');
 	values['annotation_of_points'] = $('input[name="annotation_of_points"]');
+	values['annotation_of_position_3d'] = $('input[name="annotation_of_position_3d"]');
 	// Tag of
 	values['tag_of'] = $('input[name="tag_of"]');
 	// Reference of
@@ -319,6 +325,8 @@ function send_form_relationships($form, version_urn, success, redirect_url) {
 		values['references'].push($('<input value="'+resource+'" />'));
 		// TODO: reference_text
 	});
+	// Lens of
+	values['lens_of'] = $('input[name="lens_of"]');
 
 	// Has container
 	values['has_container'] = $('input[name="has_container"]');
@@ -334,6 +342,7 @@ function send_form_relationships($form, version_urn, success, redirect_url) {
 	values['has_annotation_start_line_num'] = $('input[name="has_annotation_start_line_num"]');
 	values['has_annotation_end_line_num'] = $('input[name="has_annotation_end_line_num"]');
 	values['has_annotation_points'] = $('input[name="has_annotation_points"]');
+	values['has_annotation_position_3d'] = $('input[name="has_annotation_position_3d"]');
 	// Has Tag
 	values['has_tag'] = $('input[name="has_tag"]');
 	// Has reference

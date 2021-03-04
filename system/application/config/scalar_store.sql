@@ -53,6 +53,7 @@ CREATE TABLE IF NOT EXISTS `scalar_db_rel_annotated` (
   `start_line_num` smallint(2) unsigned NOT NULL DEFAULT '0',
   `end_line_num` smallint(2) unsigned NOT NULL DEFAULT '0',
   `points` varchar(128) COLLATE utf8_unicode_ci DEFAULT NULL,
+  `position_3d` varchar(128) COLLATE utf8_unicode_ci DEFAULT NULL,
   KEY `parent_child` (`parent_version_id`,`child_version_id`),
   KEY `child_parent` (`child_version_id`,`parent_version_id`)
 ) ENGINE=MyISAM DEFAULT CHARSET=utf8 COLLATE=utf8_unicode_ci;
@@ -119,6 +120,7 @@ CREATE TABLE IF NOT EXISTS `scalar_db_users` (
   `reset_string` varchar(255) COLLATE utf8_unicode_ci DEFAULT NULL,
   `url` varchar(255) COLLATE utf8_unicode_ci DEFAULT NULL,
   `is_super` tinyint(1) unsigned NOT NULL DEFAULT '0',
+  `previous_passwords` text COLLATE utf8_unicode_ci DEFAULT NULL,
   PRIMARY KEY (`user_id`)
 ) ENGINE=MyISAM  DEFAULT CHARSET=utf8 COLLATE=utf8_unicode_ci;
 
@@ -168,4 +170,3 @@ CREATE TABLE IF NOT EXISTS `scalar_db_whitelist` (
   `domain` varchar(255) COLLATE utf8_unicode_ci DEFAULT NULL,
   KEY `book_id` (`book_id`)
 ) ENGINE=MyISAM DEFAULT CHARSET=utf8 COLLATE=utf8_unicode_ci;
-
