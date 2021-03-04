@@ -20,6 +20,7 @@
 		var results = 20;
 		var max_results = 100;
 		var paywall = <?=(($book->has_paywall)?'true':'false')?>;
+		var user_id = <?=$login->user_id?>;
 
 		$(document).ready(function() {
 
@@ -27,6 +28,15 @@
 				var check_all = ($(this).is(':checked')) ? true : false;
 				$('.table_wrapper').find('input[type="checkbox"]').prop('checked', check_all);
 			});
+
+			$('#my_media').on('click', function() {
+				$('.table_wrapper:first').scalardashboardtable('filterAuthor', {query_type:'media',sq:user_id,s_all:s_all,start:start,results:results,book_uri:book_uri,resize_wrapper_func:resizeList,tablesorter_func:tableSorter,pagination_func:pagination,paywall:paywall});
+				$('select[name="num_results"] option').filter(function() {
+					return ($(this).text() === 'All');
+				}).prop('selected', true);
+   	   			return false;
+			});
+
 
 			$('#selectImportPages').on('change', function() {
 				var url = $('#selectImportPages option:selected').val();
@@ -41,7 +51,7 @@
    			$('#formSearch').on('submit', function() {
    				start = 0;
    				$('.table_wrapper').html('<div id="loading">Loading</div>');
-   	   			var sq = $(this).find('input[name="sq"]').val().toLowerCase();
+				var sq = $(this).find('input[name="sq"]').val().toLowerCase();
    	   			var s_all = ($(this).find('input[name="s_all"][value="1"]').is(':checked')) ? 1 : null;
    	   			if (!sq.length || 'Search for a media file'.toLowerCase()==sq) {
 					alert('Please enter a search query');
@@ -75,7 +85,8 @@
    			}
    			handle_jump_to();
 
-   			var $num_results = $('select[name="num_results"]');
+			var $num_results = $('select[name="num_results"]');
+			$num_results.append('<option value="All">All</option>');
 			for (j = results; j <= max_results; j+=results) {
 				$num_results.append('<option value="'+j+'"'+((j==results)?' selected':'')+'>'+j+'</option>');
 			}
@@ -331,5 +342,7 @@
 		Jump to: <select name="jump_to"><option value=""></option></select> of  <b><?=count($current_book_files)?></b> media
 		&nbsp; &nbsp;
 		<span style="white-space:nowrap;">Show: <select name="num_results"></select> at a time</span>
+		&nbsp; &nbsp;
+		<input id="my_media" type="button" value="My Media" class="generic_button" />
 		</form>
 <? endif ?>

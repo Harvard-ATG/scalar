@@ -20,12 +20,21 @@
 		var results = 20;
 		var max_results = 100;
 		var paywall = <?=(($book->has_paywall)?'true':'false')?>;
+		var user_id = <?=$login->user_id?>;
 
 		$(document).ready(function() {
 
 			$('#check_all').on('click', function() {
 				var check_all = ($(this).is(':checked')) ? true : false;
 				$('.table_wrapper').find('input[type="checkbox"]').prop('checked', check_all);
+			});
+
+			$('#my_pages').on('click', function() {
+				$('.table_wrapper:first').scalardashboardtable('filterAuthor', {query_type:'page',sq:user_id,s_all:s_all,start:start,results:results,book_uri:book_uri,resize_wrapper_func:resizeList,tablesorter_func:tableSorter,pagination_func:pagination,paywall:paywall});
+				$('select[name="num_results"] option').filter(function() {
+					return ($(this).text() === 'All');
+				}).prop('selected', true);
+   	   			return false;
 			});
 
 			$('#selectImportPages').on('change', function() {
@@ -76,6 +85,7 @@
    			handle_jump_to();
 
    			var $num_results = $('select[name="num_results"]');
+			$num_results.append('<option value="All">All</option>');
 			for (j = results; j <= max_results; j+=results) {
 				$num_results.append('<option value="'+j+'"'+((j==results)?' selected':'')+'>'+j+'</option>');
 			}
@@ -338,5 +348,7 @@
 		<span style="white-space:nowrap;">Jump to: <select name="jump_to"><option value=""></option></select> of  <b><?=count($current_book_content)?></b> result<?=($current_book_content>1)?'s':''?></span>
 		&nbsp; &nbsp;
 		<span style="white-space:nowrap;">Show: <select name="num_results"></select> at a time</span>
+		&nbsp; &nbsp;
+		<input id="my_pages" type="button" value="My Pages" class="generic_button" />
 		</form>
 <? endif ?>
