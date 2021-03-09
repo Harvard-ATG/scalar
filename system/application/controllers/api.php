@@ -296,21 +296,6 @@ Class Api extends CI_Controller {
 		}
 	}
 
-        /**
-	*  If the data being uploaded is a IIIF resource, get the thumbnail
-	* and other metadata from the iiif json itself.
-	**/
-	private function _load_iiif_data(){
-		if (isset($this->data['scalar:url']) && strpos($this->data['scalar:url'], '?iiif-manifest=1') > -1){
-			$iiif_metadata_array = $this->_get_IIIF_metadata($this->data['scalar:url']);
-			if($iiif_metadata_array !== false){
-				foreach ($iiif_metadata_array as $key => $value){
-					$this->data[$key] = $value;
-				}
-			}
-		}
-	}
-
 	/**
 	 *
 	 * Output an error in the specified return format with the correct HTTP header, and possibly with a custom message
@@ -635,52 +620,6 @@ Class Api extends CI_Controller {
 					}
 				}
 				return $return_array;	
-			}
-		}
-		return false;
-	}
-
-        /**
-	* _get_IIIF_metadata takes IIIF manifest url, and returns associative array of metadata.
-	* Otherwise, it will return False
-	* @return array
-	*/
-        private function _get_IIIF_metadata($url=''){
-		$ontologies = $this->config->item('ontologies');
-        $dc_check_fields = array_diff($ontologies['dcterms'], array('title', 'description', 'license'));
-		$formated_check_fields = array_combine($dc_check_fields, array_map('strtolower', $dc_check_fields));
-		if ($url !== ''){
-			$ch = curl_init();
-			curl_setopt($ch, CURLOPT_URL, $url);
-			curl_setopt($ch, CURLOPT_CONNECTTIMEOUT, 3);
-			curl_setopt($ch, CURLOPT_TIMEOUT, 15);
-			curl_setopt($ch, CURLOPT_RETURNTRANSFER, TRUE);
-			$response = curl_exec($ch);
-			curl_close($ch);
-			$response_json = json_decode($response, true);
-			if (is_array($response_json)) {
-				$return_array = [];
-				if (isset($response_json['thumbnail'])){
-					if(isset($response_json['thumbnail']['@id'])){
-				        $return_array['scalar:thumbnail'] = $response_json['thumbnail']['@id'];
-					} else {
-					    $return_array['scalar:thumbnail'] = $response_json['thumbnail'];
-					}
-				}
-				if (isset($response_json['license'])) {
-					$return_array['dcterms:license'] = $response_json['license'];
-				}
-				if (isset($response_json['metadata'])) {
-					foreach ($response_json['metadata'] as $obj) {
-						$formated_label = strtolower(str_replace(' ', '', $obj['label']));
-						$key = array_search($formated_label, $formated_check_fields);
-						if($key) {
-							$label = 'dcterms:' . $key;
-							$return_array[$label] = $obj['value'];
-						}
-					}
-				}
-				return $return_array;
 			}
 		}
 		return false;
